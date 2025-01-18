@@ -76,14 +76,11 @@
             padding: 20px;
             border-radius: 5px;
             margin: 5px;
+            display: inline-block;
         }
 
         .number-cell.booked {
             background-color: #f44336;
-        }
-
-        .number-cell:hover {
-            background-color: #45a049;
         }
 
         .number-name {
@@ -142,12 +139,6 @@
         .close:focus {
             color: black;
             text-decoration: none;
-        }
-
-        @keyframes fireworks {
-            0% { transform: scale(0.8); opacity: 0.6; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(0.8); opacity: 0.6; }
         }
 
         /* ปรับให้เหมาะสมกับหน้าจอมือถือ */
@@ -254,7 +245,7 @@
     <!-- ตารางการจองหมายเลข -->
     <div class="form">
         <h2>ตารางหมายเลข</h2>
-        <div id="numberGrid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; justify-items: center; margin-top: 20px;"></div>
+        <div id="numberGrid" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px;"></div>
     </div>
 
     <!-- Modal สำหรับตรวจรางวัล -->
@@ -295,7 +286,7 @@
             const grid = document.getElementById('numberGrid');
             grid.innerHTML = '';
             numbers.forEach(({ number, bookedBy }) => {
-                const cell = document.createElement('div');
+                const cell = document.createElement('button');
                 cell.classList.add('number-cell');
                 if (bookedBy) cell.classList.add('booked');
                 cell.innerHTML = `${number}<div class="number-name">${bookedBy || ''}</div>`;
@@ -337,21 +328,22 @@
         }
 
         function handleBooking(number) {
-            const name = prompt('กรุณากรอกชื่อของคุณ');
+            const index = numbers.findIndex(n => n.number === number);
+            const name = numbers[index].bookedBy ? prompt(`กรุณากรอกชื่อของคุณ (ยกเลิกการจองของ ${numbers[index].bookedBy} หรือจองใหม่):`) : prompt('กรุณากรอกชื่อของคุณ');
             if (name) {
-                const index = numbers.findIndex(n => n.number === number);
-                if (index !== -1 && numbers[index].status === 'ว่าง') {
-                    numbers[index].bookedBy = name;
-                    numbers[index].status = 'จองแล้ว';
-                    history.push({ number, bookedBy: name, status: 'จองแล้ว' });
-                    localStorage.setItem('numbers', JSON.stringify(numbers));
-                    localStorage.setItem('history', JSON.stringify(history));
-                    renderGrid();
-                    renderHistory();
-                    alert(`หมายเลข ${number} ถูกจองโดย ${name}`);
+                if (numbers[index].bookedBy) {
+                    numbers[index].bookedBy = null; // ยกเลิกการจอง
+                    numbers[index].status = 'ว่าง';
                 } else {
-                    alert('หมายเลขนี้ไม่สามารถจองได้');
+                    numbers[index].bookedBy = name; // ทำการจองใหม่
+                    numbers[index].status = 'จองแล้ว';
                 }
+                history.push({ number, bookedBy: name, status: numbers[index].status });
+                localStorage.setItem('numbers', JSON.stringify(numbers));
+                localStorage.setItem('history', JSON.stringify(history));
+                renderGrid();
+                renderHistory();
+                alert(`หมายเลข ${number} ถูก ${numbers[index].bookedBy ? 'จอง' : 'ยกเลิกการจอง'} โดย ${name}`);
             }
         }
 
