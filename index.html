@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบการจองหมายเลข</title>
+    <style>
+        /* สไตล์ต่างๆ */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 2.5vw;
+        }
+
+        .form, .summary, .history-container, .btn, .reset-all-btn {
+            margin: 20px;
+            text-align: center;
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.5vw;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .summary {
+            font-size: 1.5vw;
+        }
+
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .number-cell {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 2vw;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        .number-cell.booked {
+            background-color: #f44336;
+        }
+
+        .number-cell:hover {
+            background-color: #45a049;
+        }
+
+        .number-name {
+            font-size: 1vw;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #f9f9f9;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content p {
+            font-size: 1.5vw;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        @keyframes fireworks {
+            0% { transform: scale(0.8); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.6; }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 6vw;
+            }
+
+            input[type="text"], input[type="number"] {
+                width: 90%;
+            }
+
+            button {
+                font-size: 4vw;
+            }
+
+            .modal-content {
+                width: 90%;
+            }
+
+            .modal-content p {
+                font-size: 4vw;
+            }
+
+            .modal-content .fireworks {
+                font-size: 8vw;
+            }
+
+            .summary, .history-container {
+                font-size: 4vw;
+            }
+
+            .number-cell {
+                font-size: 6vw;
+                padding: 15px;
+            }
+
+            .number-name {
+                font-size: 3vw;
+            }
+        }
+
+        /* แก้ไขสไตล์การแสดงผลข้อมูลที่ค้นหา */
+        .search-result {
+            margin-top: 20px;
+            background-color: #e7f4e7;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-result h3 {
+            font-size: 2vw;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .search-result p {
+            font-size: 1.5vw;
+            margin: 5px 0;
+        }
+
+        .search-result .details {
+            margin-top: 10px;
+            font-size: 1.2vw;
+            color: #333;
+            text-align: center;
+        }
+
+        .search-result .details span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>ระบบการจองหมายเลข</h1>
+
+    <!-- ฟอร์มค้นหาชื่อผู้จอง -->
+    <div class="form">
+        <input type="text" id="searchName" placeholder="ค้นหาชื่อผู้จอง">
+        <button onclick="searchBooking()">ค้นหาผู้จอง</button>
+    </div>
+
+    <!-- ผลลัพธ์การค้นหา -->
+    <div id="searchResult" class="search-result" style="display: none;">
+        <h3>ผลการค้นหาผู้จอง</h3>
+        <p id="searchUserName"></p>
+        <div class="details">
+            <p>หมายเลขที่จอง:</p>
+            <p id="searchUserNumbers"></p>
+            <p>ราคาทั้งหมด:</p>
+            <p id="searchUserPrice"></p>
+        </div>
+    </div>
+
+    <!-- ฟอร์มสำหรับการตรวจรางวัล -->
+    <div class="form">
+        <input type="number" id="prizeNumber" placeholder="หมายเลขรางวัล (00-99)" min="0" max="99">
+        <button onclick="checkPrize()">ตรวจรางวัล</button>
+    </div>
+
+    <!-- ตารางการจองหมายเลข -->
+    <div class="form">
+        <h2>ตารางหมายเลข</h2>
+        <div id="numberGrid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; justify-items: center; margin-top: 20px;"></div>
+    </div>
+
+    <!-- Modal สำหรับตรวจรางวัล -->
+    <div id="prizeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p id="prizeMessage"></p>
+        </div>
+    </div>
+
+    <!-- สถิติ -->
+    <div class="history-container">
+        <h3>ข้อมูลสถิติ</h3>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>หมายเลข</th>
+                    <th>ผู้จอง</th>
+                    <th>สถานะ</th>
+                </tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+        </table>
+        <button class="btn reset-btn" onclick="resetStats()">ลบสถิติ</button>
+    </div>
+
+    <script>
+        const pricePerNumber = 20; // ราคาต่อหมายเลข
+        let numbers = JSON.parse(localStorage.getItem('numbers')) || Array.from({ length: 100 }, (_, i) => ({
+            number: i.toString().padStart(2, '0'),
+            bookedBy: null,
+            status: 'ว่าง'
+        }));
+        let totalRevenue = 0;
+        let history = JSON.parse(localStorage.getItem('history')) || [];
+
+        function renderGrid() {
+            const grid = document.getElementById('numberGrid');
+            grid.innerHTML = '';
+            numbers.forEach(({ number, bookedBy }) => {
+                const cell = document.createElement('div');
+                cell.classList.add('number-cell');
+                if (bookedBy) cell.classList.add('booked');
+                cell.innerHTML = `${number}<div class="number-name">${bookedBy || ''}</div>`;
+                cell.onclick = () => handleBooking(number);
+                grid.appendChild(cell);
+            });
+        }
+
+        function renderHistory() {
+            const historyTable = document.getElementById('historyTable');
+            historyTable.innerHTML = '';
+            history.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${item.number}</td><td>${item.bookedBy}</td><td>${item.status}</td>`;
+                historyTable.appendChild(row);
+            });
+        }
+
+        function searchBooking() {
+            const name = document.getElementById('searchName').value.trim();
+            const result = numbers.filter(n => n.bookedBy === name);
+            const searchResult = document.getElementById('searchResult');
+            const searchUserName = document.getElementById('searchUserName');
+            const searchUserNumbers = document.getElementById('searchUserNumbers');
+            const searchUserPrice = document.getElementById('searchUserPrice');
+
+            if (result.length > 0) {
+                searchUserName.textContent = `ชื่อผู้จอง: ${name}`;
+                searchUserNumbers.textContent = result.map(n => n.number).join(', ');
+                const totalPrice = result.length * pricePerNumber;
+                searchUserPrice.textContent = `ราคาทั้งหมด: ${totalPrice} บาท`;
+                searchResult.style.display = 'block';
+            } else {
+                searchUserName.textContent = `ไม่พบข้อมูลของผู้จองชื่อ ${name}`;
+                searchUserNumbers.textContent = '';
+                searchUserPrice.textContent = '';
+                searchResult.style.display = 'block';
+            }
+        }
+
+        function handleBooking(number) {
+            const name = prompt('กรุณากรอกชื่อของคุณ');
+            if (name) {
+                const index = numbers.findIndex(n => n.number === number);
+                if (index !== -1 && numbers[index].status === 'ว่าง') {
+                    numbers[index].bookedBy = name;
+                    numbers[index].status = 'จองแล้ว';
+                    history.push({ number, bookedBy: name, status: 'จองแล้ว' });
+                    localStorage.setItem('numbers', JSON.stringify(numbers));
+                    localStorage.setItem('history', JSON.stringify(history));
+                    renderGrid();
+                    renderHistory();
+                    alert(`หมายเลข ${number} ถูกจองโดย ${name}`);
+                } else {
+                    alert('หมายเลขนี้ไม่สามารถจองได้');
+                }
+            }
+        }
+
+        function checkPrize() {
+            const prizeNumber = document.getElementById('prizeNumber').value;
+            const prizeModal = document.getElementById('prizeModal');
+            const prizeMessage = document.getElementById('prizeMessage');
+
+            const numberFound = numbers.find(n => n.number === prizeNumber);
+
+            if (numberFound && numberFound.bookedBy) {
+                prizeMessage.textContent = `หมายเลข ${prizeNumber} ถูกจองโดย ${numberFound.bookedBy} และได้รับรางวัล!`;
+            } else {
+                prizeMessage.textContent = `หมายเลข ${prizeNumber} ไม่ได้ถูกรางวัลหรือยังไม่มีการจอง`;
+            }
+
+            prizeModal.style.display = 'block';
+        }
+
+        function closeModal() {
+            const prizeModal = document.getElementById('prizeModal');
+            prizeModal.style.display = 'none';
+        }
+
+        function resetStats() {
+            localStorage.removeItem('numbers');
+            localStorage.removeItem('history');
+            numbers = Array.from({ length: 100 }, (_, i) => ({
+                number: i.toString().padStart(2, '0'),
+                bookedBy: null,
+                status: 'ว่าง'
+            }));
+            history = [];
+            localStorage.setItem('numbers', JSON.stringify(numbers));
+            localStorage.setItem('history', JSON.stringify(history));
+            renderGrid();
+            renderHistory();
+        }
+
+        renderGrid();
+        renderHistory();
+    </script>
+</body>
+</html>
